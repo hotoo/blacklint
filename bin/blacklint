@@ -1,0 +1,62 @@
+#!/bin/bash
+
+function usage () {
+  echo "Usage: blacklint [directories files]"
+  echo
+  echo "Options:"
+  echo "    -h, --help          show help infomation."
+  exit 0
+}
+
+if [ "$*" = "-h" ]; then
+  usage
+elif [ "$*" = "--help" ]; then
+  usage
+elif [ "$*" = "" ]; then
+  INPUT_DIR=.
+else
+  INPUT_DIR="$*"
+fi
+
+FOUND_ERROR="FALSE"
+
+USER_BLACKLIST=~/.blacklintrc
+CWD_BLACKLIST=.blacklintrc
+
+# Check the certain words.
+#
+# @param {String} blacklist_file
+# @param {String} filepath or directory.
+function checkBlackList () {
+  blacklist_file=$1
+  filepath=$2
+
+  if [ -f $blacklist_file ]; then
+    while IFS= read -r CHECK
+    do
+      if [ "$CHECK" != "" ]; then
+
+        ERRORS=$(grep -inr --color "${CHECK}" $filepath >&1)
+
+        if [ "$ERRORS" != "" ]; then
+
+          if [ "$FOUND_ERROR" = "FALSE" ]; then
+            FOUND_ERROR="TRUE"
+          fi
+
+          echo -e "# \033[33m$CHECK\033[0m"
+          echo -e "$ERRORS"
+        fi
+      fi
+    done < $blacklist_file
+  fi
+}
+
+checkBlackList $CWD_BLACKLIST "$INPUT_DIR"
+checkBlackList $USER_BLACKLIST "$INPUT_DIR"
+
+if [ "$FOUND_ERROR" = "TRUE" ]; then
+  echo
+  echo -e "\033[31mFound certain words, please resolve it.\033[0m"
+  exit 1
+fi
